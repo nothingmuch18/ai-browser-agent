@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base ─── */
+:root {
+  --bg-primary: #020617;
+  --violet-glow: rgba(139, 92, 246, 0.15);
+  --emerald-glow: rgba(16, 185, 129, 0.15);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-primary);
+  color: #f8fafc;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+/* ─── Glassmorphism Utilities ─── */
+@layer components {
+  .glass-card {
+    @apply bg-slate-900/60 border border-slate-800 backdrop-blur-md rounded-2xl;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 hover:border-slate-700 hover:bg-slate-900/80 hover:shadow-lg hover:shadow-violet-500/5;
+  }
+
+  .glass-navbar {
+    @apply bg-slate-950/80 border-b border-slate-800/60 backdrop-blur-xl;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-violet-400 to-violet-200 bg-clip-text text-transparent;
+  }
+
+  .gradient-button {
+    @apply bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400
+      text-white font-semibold rounded-xl px-6 py-3
+      transition-all duration-300
+      shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40
+      active:scale-[0.98];
+  }
+
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .input-field {
+    @apply w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3
+      text-slate-100 placeholder-slate-500
+      focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/60
+      transition-all duration-200;
+  }
+}
+
+/* ─── Animations ─── */
+@layer utilities {
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animate-delay-400 {
+    animation-delay: 400ms;
+  }
+}
+
+/* Shimmer skeleton effect */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(30, 41, 59, 0.6);
+  border-radius: 0.75rem;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(148, 163, 184, 0.08),
+    transparent
+  );
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Glow ring for active items */
+@keyframes glow-ring {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), 0 0 12px rgba(139, 92, 246, 0.2); }
+}
+.glow-ring {
+  animation: glow-ring 2s ease-in-out infinite;
+}
