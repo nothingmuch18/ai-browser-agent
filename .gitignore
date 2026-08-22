@@ -1,0 +1,12 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+agent.db
+backend/screenshots/*
+!backend/screenshots/.gitkeep
+.next/
+dist/
+venv/
+.venv/
+.ds_store
