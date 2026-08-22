@@ -74,7 +74,7 @@ function ExecuteContent() {
     if (!taskId || taskDone) return;
 
     const ws = new WebSocket(
-      `ws://localhost:8000/api/v1/ws/tasks/${taskId}`
+      `ws://localhost:8001/api/v1/ws/tasks/${taskId}`
     );
     wsRef.current = ws;
 
