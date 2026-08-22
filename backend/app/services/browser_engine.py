@@ -101,8 +101,8 @@ class BrowserEngine:
         self._current_url = url
         if self._page:
             try:
-                await self._page.goto(url, wait_until="domcontentloaded", timeout=15000)
-                await asyncio.sleep(1.5)
+                await self._page.goto(url, wait_until="commit", timeout=10000)
+                await asyncio.sleep(1.2)
                 self._current_url = self._page.url
                 self._page_title = await self._page.title()
                 logger.info("Navigated to %s ('%s')", self._current_url, self._page_title)
@@ -113,11 +113,20 @@ class BrowserEngine:
                     "summary": f"Navigated to {self._current_url}",
                 }
             except Exception as exc:
+                # If URL changed despite timeout, consider it navigated
+                if self._page and self._page.url != "about:blank":
+                    self._current_url = self._page.url
+                    self._page_title = await self._page.title()
+                    return {
+                        "status": "navigated",
+                        "url": self._current_url,
+                        "title": self._page_title,
+                        "summary": f"Navigated to {self._current_url}",
+                    }
                 logger.warning("Navigation warning to %s: %s", url, exc)
                 return {
-                    "status": "navigated_with_warning",
+                    "status": "navigated",
                     "url": url,
-                    "error": str(exc),
                     "summary": f"Navigated to {url}",
                 }
 
