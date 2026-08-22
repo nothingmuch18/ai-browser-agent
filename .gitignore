@@ -1,4 +1,6 @@
 node_modules/
 dist/
+.env
+frontend/ai-browser-agent
 .DS_Store
 *.log
