@@ -21,6 +21,24 @@ const actionIcons: Record<string, string> = {
   done: "✅",
 };
 
+function formatResult(result: string | null): string | null {
+  if (!result) return null;
+  if (result.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(result);
+      if (parsed.summary) return parsed.summary;
+      if (parsed.error) return `Error: ${parsed.error}`;
+      if (parsed.title) return `Page: ${parsed.title}`;
+      if (parsed.url) return `Navigated to ${parsed.url}`;
+      if (parsed.text) return `Typed "${parsed.text}"`;
+      if (parsed.selector) return `Target: ${parsed.selector}`;
+    } catch {
+      // Return as is if not valid JSON
+    }
+  }
+  return result;
+}
+
 function getStatusIcon(status: string) {
   switch (status) {
     case "completed":
@@ -75,8 +93,9 @@ export default function ExecutionTimeline({
           <div className="space-y-1">
             {steps.map((step, i) => {
               const isActive = step.status === "running";
-              const isLast = i === steps.length - 1;
+              const isFailed = step.status === "failed";
               const icon = actionIcons[step.action] || "🔹";
+              const formattedResult = formatResult(step.result);
 
               return (
                 <div
@@ -84,7 +103,8 @@ export default function ExecutionTimeline({
                   className={cn(
                     "relative flex items-start gap-3 p-3 rounded-xl transition-all duration-300",
                     isActive && "bg-violet-500/5 glow-ring",
-                    !isActive && "hover:bg-slate-800/30"
+                    isFailed && "bg-red-500/5 border border-red-500/20",
+                    !isActive && !isFailed && "hover:bg-slate-800/30"
                   )}
                   style={{
                     animationDelay: `${i * 80}ms`,
@@ -96,10 +116,10 @@ export default function ExecutionTimeline({
                       "relative z-10 flex items-center justify-center w-9 h-9 rounded-full border text-sm font-bold shrink-0",
                       isActive
                         ? "bg-violet-500/20 border-violet-500/40 text-violet-300"
+                        : isFailed
+                        ? "bg-red-500/10 border-red-500/30 text-red-400"
                         : step.status === "completed"
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                        : step.status === "failed"
-                        ? "bg-red-500/10 border-red-500/30 text-red-400"
                         : "bg-slate-800/60 border-slate-700 text-slate-500"
                     )}
                   >
@@ -125,12 +145,15 @@ export default function ExecutionTimeline({
                         {step.status}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 truncate" title={step.target}>
+                    <p className="text-xs text-slate-300 font-mono truncate" title={step.target}>
                       {step.target}
                     </p>
-                    {step.result && (
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                        {step.result}
+                    {formattedResult && (
+                      <p className={cn(
+                        "text-xs mt-1 leading-relaxed",
+                        isFailed ? "text-red-400/90 font-medium" : "text-slate-400"
+                      )}>
+                        {formattedResult}
                       </p>
                     )}
                   </div>

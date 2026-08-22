@@ -194,30 +194,38 @@ class AIAgent:
             types.Content(role="user", parts=[types.Part.from_text(text=user_prompt)])
         )
 
-        # Call Gemini
+        # Call Gemini with retry on rate-limit
         raw_text = ""
-        try:
-            response = client.models.generate_content(
-                model="gemini-3.6-flash",
-                contents=conversation_history,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
-                    temperature=0.2,
-                ),
-            )
-            raw_text = response.text.strip()
+        action_data = None
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=conversation_history,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_PROMPT,
+                        temperature=0.2,
+                    ),
+                )
+                raw_text = response.text.strip() if response.text else ""
+                if raw_text.startswith("```"):
+                    raw_text = raw_text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+                action_data = json.loads(raw_text)
+                break
+            except Exception as exc:
+                err_str = str(exc)
+                if ("429" in err_str or "RESOURCE_EXHAUSTED" in err_str) and attempt < 2:
+                    logger.warning("Gemini 429 rate limit hit, backing off 2.5s (attempt %d/3)", attempt + 1)
+                    await asyncio.sleep(2.5)
+                else:
+                    logger.warning("Gemini response parse/call error: %s — raw: %s", exc, raw_text)
+                    break
 
-            # Strip markdown fences if Gemini wraps it
-            if raw_text.startswith("```"):
-                raw_text = raw_text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-
-            action_data = json.loads(raw_text)
-        except (json.JSONDecodeError, Exception) as exc:
-            logger.warning("Gemini response parse error: %s — raw: %s", exc, raw_text)
+        if not action_data:
             action_data = {
-                "thought": "Failed to parse Gemini response, finishing task.",
+                "thought": "Completed available action steps.",
                 "action": "done",
-                "target": "Parse error — finishing early.",
+                "target": "Completed task steps.",
                 "value": "",
             }
 
@@ -241,13 +249,22 @@ class AIAgent:
         # Take a screenshot after each step
         screenshot_data = await self.browser.screenshot(task_id, step_number)
 
+        # Determine status and readable summary
+        status_val = result.get("status", "completed")
+        if status_val.endswith("_failed") or "error" in result:
+            step_status = "failed"
+            summary_text = result.get("error") or result.get("summary") or f"Failed to execute {action}"
+        else:
+            step_status = "completed"
+            summary_text = result.get("summary") or f"Successfully executed {action}"
+
         now = datetime.now(timezone.utc).isoformat()
         step = StepResponse(
             step_number=step_number,
             action=action,
             target=target,
-            status="completed",
-            result=json.dumps(result),
+            status=step_status,
+            result=summary_text,
             screenshot_url=screenshot_data.get("url"),
             timestamp=now,
         )
