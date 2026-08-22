@@ -109,7 +109,7 @@ class AIAgent:
 
             # 3. ReAct loop
             for step_num in range(1, task.get("max_steps", 15) + 1):
-                step_response = await self._execute_step(
+                step_response, screenshot_b64 = await self._execute_step(
                     task_id=task_id,
                     goal=task["goal"],
                     step_number=step_num,
@@ -117,12 +117,13 @@ class AIAgent:
                 )
                 steps.append(step_response)
 
-                # Broadcast the step update
+                # Broadcast the step update with screenshot
                 update = ExecutionUpdate(
                     task_id=task_id,
                     type="step_completed",
                     step=step_response,
                     message=f"Step {step_num}: {step_response.action} → {step_response.status}",
+                    screenshot_base64=screenshot_b64,
                 )
                 await ws_manager.broadcast(task_id, update.model_dump())
 
@@ -197,7 +198,7 @@ class AIAgent:
         raw_text = ""
         try:
             response = client.models.generate_content(
-                model="gemini-3.5-flash-lite",
+                model="gemini-3.6-flash",
                 contents=conversation_history,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
@@ -241,7 +242,7 @@ class AIAgent:
         screenshot_data = await self.browser.screenshot(task_id, step_number)
 
         now = datetime.now(timezone.utc).isoformat()
-        return StepResponse(
+        step = StepResponse(
             step_number=step_number,
             action=action,
             target=target,
@@ -250,6 +251,7 @@ class AIAgent:
             screenshot_url=screenshot_data.get("url"),
             timestamp=now,
         )
+        return step, screenshot_data.get("base64")
 
     # ------------------------------------------------------------------
     async def _run_action(
