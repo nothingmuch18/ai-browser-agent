@@ -29,17 +29,30 @@ export interface Task {
   execution_time_ms: number;
 }
 
+export interface ActionVisual {
+  action?: string;
+  selector?: string;
+  text?: string;
+}
+
 export interface ExecutionUpdate {
   task_id: string;
   type:
+    | "frame"
     | "step_started"
     | "step_completed"
     | "step_failed"
     | "task_completed"
-    | "screenshot";
+    | "screenshot"
+    | "error";
   step?: Step;
-  message: string;
+  message?: string;
   screenshot_base64?: string;
+  url?: string;
+  title?: string;
+  fps?: number;
+  action_visual?: ActionVisual;
+  timestamp?: string;
 }
 
 /* ─── API Client ─── */

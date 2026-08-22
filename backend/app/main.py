@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import Base, engine
 from app.routers import tasks
-from app.services.ai_agent import ws_manager
+from app.services.stream_manager import ws_stream_manager
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -89,17 +89,23 @@ async def health_check():
 
 
 # ---------------------------------------------------------------------------
-# WebSocket — live task updates
+# WebSocket — production live browser screen & execution updates stream
 # ---------------------------------------------------------------------------
 @app.websocket("/api/v1/ws/tasks/{task_id}")
 async def websocket_task_updates(websocket: WebSocket, task_id: str):
-    await ws_manager.connect(task_id, websocket)
-    logger.info("WS connected for task %s", task_id)
+    await ws_stream_manager.connect(task_id, websocket)
+    logger.info("WS stream connected for task %s", task_id)
     try:
         while True:
-            # Keep the connection alive; client can also send messages
+            # Handle incoming ping/control messages from frontend
             data = await websocket.receive_text()
-            logger.debug("WS received from client: %s", data)
+            if data == "ping":
+                await websocket.send_text("pong")
+            else:
+                logger.debug("WS client msg on task %s: %s", task_id, data)
     except WebSocketDisconnect:
-        ws_manager.disconnect(task_id, websocket)
-        logger.info("WS disconnected for task %s", task_id)
+        await ws_stream_manager.disconnect(task_id, websocket)
+        logger.info("WS stream disconnected for task %s", task_id)
+    except Exception as exc:
+        logger.warning("WS stream error for task %s: %s", task_id, exc)
+        await ws_stream_manager.disconnect(task_id, websocket)

@@ -1,6 +1,6 @@
 """
 AI Agent — ReAct loop powered by Gemini Flash with multi-model fallback,
-rate-limit resilience, and autonomous browser execution.
+rate-limit resilience, visual action broadcasting, and live browser streaming.
 """
 
 import asyncio
@@ -18,6 +18,7 @@ from app.config import settings
 from app.database import task_store, generate_id
 from app.models import StepResponse, ExecutionUpdate
 from app.services.browser_engine import BrowserEngine
+from app.services.stream_manager import ws_stream_manager
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-# Fallback model list
 CANDIDATE_MODELS = [
     "gemini-2.5-flash",
     "gemini-1.5-flash",
@@ -51,45 +51,13 @@ Respond ONLY with a valid JSON object (no markdown fences, no extra text):
 """
 
 
-# ---------------------------------------------------------------------------
-# WebSocket manager (broadcast registry)
-# ---------------------------------------------------------------------------
-class ConnectionManager:
-    """Manages WebSocket connections per task_id for live updates."""
-
-    def __init__(self) -> None:
-        self._connections: Dict[str, list] = {}
-
-    async def connect(self, task_id: str, websocket) -> None:
-        await websocket.accept()
-        self._connections.setdefault(task_id, []).append(websocket)
-
-    def disconnect(self, task_id: str, websocket) -> None:
-        conns = self._connections.get(task_id, [])
-        if websocket in conns:
-            conns.remove(websocket)
-
-    async def broadcast(self, task_id: str, message: dict) -> None:
-        for ws in self._connections.get(task_id, []):
-            try:
-                await ws.send_json(message)
-            except Exception:
-                logger.warning("Failed to send WS message for task %s", task_id)
-
-
-ws_manager = ConnectionManager()
-
-
-# ---------------------------------------------------------------------------
-# AI Agent
-# ---------------------------------------------------------------------------
 class AIAgent:
     def __init__(self) -> None:
         self.browser = BrowserEngine()
 
     # ------------------------------------------------------------------
     async def execute_task(self, task_id: str) -> dict:
-        """Run the full ReAct loop for *task_id*."""
+        """Run the full ReAct loop for *task_id* with continuous live streaming."""
         task = task_store.get(task_id)
         if not task:
             raise ValueError(f"Task {task_id} not found")
@@ -100,8 +68,8 @@ class AIAgent:
         conversation_history: list = []
 
         try:
-            # 1. Start browser session
-            await self.browser.start_session()
+            # 1. Start browser session with continuous screen streamer
+            await self.browser.start_session(task_id=task_id, headless=True)
 
             # 2. Navigate to initial URL if provided
             if task.get("target_url"):
@@ -110,6 +78,16 @@ class AIAgent:
             # 3. ReAct loop
             max_steps = min(task.get("max_steps", 15), 10)
             for step_num in range(1, max_steps + 1):
+                # Broadcast step started
+                await ws_stream_manager.broadcast(
+                    task_id,
+                    ExecutionUpdate(
+                        task_id=task_id,
+                        type="step_started",
+                        message=f"Starting Step {step_num}...",
+                    ).model_dump(),
+                )
+
                 step_response, screenshot_b64 = await self._execute_step(
                     task_id=task_id,
                     goal=task["goal"],
@@ -126,7 +104,7 @@ class AIAgent:
                     message=f"Step {step_num}: {step_response.action} → {step_response.status}",
                     screenshot_base64=screenshot_b64,
                 )
-                await ws_manager.broadcast(task_id, update.model_dump())
+                await ws_stream_manager.broadcast(task_id, update.model_dump())
 
                 # If the agent decided it's done, break
                 if step_response.action == "done":
@@ -144,7 +122,7 @@ class AIAgent:
             }
 
             # Broadcast completion
-            await ws_manager.broadcast(
+            await ws_stream_manager.broadcast(
                 task_id,
                 ExecutionUpdate(
                     task_id=task_id,
@@ -157,7 +135,7 @@ class AIAgent:
             logger.exception("Task %s failed: %s", task_id, exc)
             task["status"] = "failed"
             task["result"] = {"error": str(exc)}
-            await ws_manager.broadcast(
+            await ws_stream_manager.broadcast(
                 task_id,
                 ExecutionUpdate(
                     task_id=task_id,
@@ -268,7 +246,6 @@ class AIAgent:
         encoded_query = urllib.parse.quote_plus(clean_goal)
 
         if step_number == 1:
-            # First navigate directly to Bing search
             return {
                 "thought": f"Navigating to search engine for query: '{clean_goal}'",
                 "action": "navigate",
@@ -276,7 +253,6 @@ class AIAgent:
                 "value": "",
             }
         elif step_number == 2:
-            # Extract search results
             return {
                 "thought": "Extracting search results and content from the page.",
                 "action": "extract",
@@ -284,7 +260,6 @@ class AIAgent:
                 "value": "",
             }
         else:
-            # Complete task
             return {
                 "thought": f"Found relevant information for '{clean_goal}'. Task is complete.",
                 "action": "done",
