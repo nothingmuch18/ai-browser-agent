@@ -18,9 +18,14 @@ export default function BrowserView({
   isLoading = false,
   className,
 }: BrowserViewProps) {
+  const resolvedUrl =
+    screenshotUrl && screenshotUrl.startsWith("/")
+      ? `http://localhost:8001${screenshotUrl}`
+      : screenshotUrl;
+
   const imageSrc = screenshotBase64
     ? `data:image/png;base64,${screenshotBase64}`
-    : screenshotUrl || null;
+    : resolvedUrl || null;
 
   return (
     <div

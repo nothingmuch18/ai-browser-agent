@@ -9,8 +9,9 @@ import {
   Radio,
   Send,
   Loader2,
-  ChevronRight,
   ExternalLink,
+  AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { taskApi, type Task } from "@/lib/api";
 import { cn, timeAgo, formatDuration } from "@/lib/utils";
@@ -41,19 +42,24 @@ export default function DashboardPage() {
   const [goal, setGoal] = useState("");
   const [targetUrl, setTargetUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  /* ── Fetch tasks on mount ── */
+  /* ── Fetch tasks on mount & poll ── */
+  const fetchTasks = async () => {
+    try {
+      const res = await taskApi.list();
+      setTasks(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      /* Gracefully handle if backend is starting */
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await taskApi.list();
-        setTasks(Array.isArray(res.data) ? res.data : []);
-      } catch {
-        /* API might not be running yet — gracefully show empty */
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchTasks();
+    const interval = setInterval(fetchTasks, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   /* ── Derived metrics ── */
@@ -76,15 +82,18 @@ export default function DashboardPage() {
   /* ── Submit handler ── */
   async function handleExecute(e: React.FormEvent) {
     e.preventDefault();
-    if (!goal.trim()) return;
+    if (!goal.trim() || submitting) return;
     setSubmitting(true);
+    setErrorMessage(null);
     try {
-      const created = await taskApi.create(goal, targetUrl || undefined);
+      const created = await taskApi.create(goal.trim(), targetUrl.trim() || undefined);
       const taskId = created.data.id;
       await taskApi.execute(taskId);
       router.push(`/execute?id=${taskId}`);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Execute failed:", err);
+      const msg = err instanceof Error ? err.message : "Failed to trigger execution";
+      setErrorMessage(msg);
       setSubmitting(false);
     }
   }
@@ -126,9 +135,17 @@ export default function DashboardPage() {
       {/* ─── Quick Execute Panel ─── */}
       <div className="glass-card p-6 animate-slide-up animate-delay-400">
         <h2 className="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-violet-400" />
+          <Sparkles className="w-5 h-5 text-violet-400" />
           Quick Execute
         </h2>
+
+        {errorMessage && (
+          <div className="mb-4 flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         <form onSubmit={handleExecute} className="space-y-4">
           <textarea
             id="goal-input"
@@ -143,7 +160,7 @@ export default function DashboardPage() {
               id="target-url-input"
               value={targetUrl}
               onChange={(e) => setTargetUrl(e.target.value)}
-              placeholder="Target URL (optional)"
+              placeholder="Target URL (e.g. https://github.com/trending)"
               className="input-field flex-1"
             />
             <button
@@ -167,11 +184,12 @@ export default function DashboardPage() {
 
       {/* ─── Recent Tasks Table ─── */}
       <div className="glass-card overflow-hidden animate-slide-up animate-delay-400">
-        <div className="px-6 py-4 border-b border-slate-800/60">
+        <div className="px-6 py-4 border-b border-slate-800/60 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
             <ListTodo className="w-5 h-5 text-violet-400" />
             Recent Tasks
           </h2>
+          <span className="text-xs text-slate-500">Auto-updating</span>
         </div>
 
         {loading ? (
@@ -187,15 +205,16 @@ export default function DashboardPage() {
             {tasks.slice(0, 10).map((task) => (
               <div
                 key={task.id}
-                className="flex items-center gap-4 px-6 py-4 hover:bg-slate-800/20 transition-colors group"
+                onClick={() => router.push(`/execute?id=${task.id}`)}
+                className="flex items-center gap-4 px-6 py-4 hover:bg-slate-800/40 transition-colors cursor-pointer group"
               >
                 {/* Goal */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-200 truncate">
+                  <p className="text-sm font-medium text-slate-200 truncate group-hover:text-violet-300 transition-colors">
                     {task.goal}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {timeAgo(task.created_at)} · {task.steps.length} steps
+                    {timeAgo(task.created_at)} · {task.steps?.length || 0} steps
                     {task.execution_time_ms > 0 &&
                       ` · ${formatDuration(task.execution_time_ms)}`}
                   </p>
@@ -212,13 +231,9 @@ export default function DashboardPage() {
                 </span>
 
                 {/* Action */}
-                <button
-                  onClick={() => router.push(`/execute?id=${task.id}`)}
-                  className="p-2 rounded-lg text-slate-500 hover:text-violet-400 hover:bg-violet-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                  title="View execution"
-                >
+                <div className="p-2 rounded-lg text-slate-500 group-hover:text-violet-400 group-hover:bg-violet-500/10 transition-colors">
                   <ExternalLink className="w-4 h-4" />
-                </button>
+                </div>
               </div>
             ))}
           </div>

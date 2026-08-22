@@ -33,26 +33,36 @@ function ExecuteContent() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
 
-  /* ── Fetch initial task data ── */
+  /* ── Fetch & sync task data ── */
   useEffect(() => {
     if (!taskId) return;
-    (async () => {
+    const fetchCurrentTask = async () => {
       try {
         const res = await taskApi.get(taskId);
         setTask(res.data);
-        if (res.data.steps?.length) setSteps(res.data.steps);
+        if (res.data.steps?.length) {
+          setSteps(res.data.steps);
+          // Set last step's screenshot url if we don't have base64
+          const lastWithScreenshot = [...res.data.steps].reverse().find(s => s.screenshot_url);
+          if (lastWithScreenshot?.screenshot_url && !screenshot) {
+            setCurrentUrl(lastWithScreenshot.target || "about:blank");
+          }
+        }
         if (res.data.total_tokens) setTokens(res.data.total_tokens);
-        if (
-          res.data.status === "completed" ||
-          res.data.status === "failed"
-        ) {
+        if (res.data.status === "completed" || res.data.status === "failed") {
           setTaskDone(true);
         }
       } catch (err) {
         console.error("Failed to fetch task", err);
       }
-    })();
-  }, [taskId]);
+    };
+
+    fetchCurrentTask();
+    if (!taskDone) {
+      const interval = setInterval(fetchCurrentTask, 1500);
+      return () => clearInterval(interval);
+    }
+  }, [taskId, taskDone, screenshot]);
 
   /* ── Elapsed time ticker ── */
   useEffect(() => {
