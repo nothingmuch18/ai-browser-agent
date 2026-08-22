@@ -1,6 +1,6 @@
 """Structured Data Extractor using BeautifulSoup for AI Browser Agent.
 
-Member B — Parses tables and lists from raw HTML strings.
+Member B — Parses tables, links, and lists from raw HTML strings.
 Used by the AI agent to extract structured data from page content.
 """
 
@@ -31,7 +31,6 @@ class DataExtractor:
                     cells = [td.get_text(strip=True) for td in tr.find_all(["td", "th"])]
                     if not cells:
                         continue
-                    # If we haven't found headers yet, treat first data row as headers
                     if not headers and not rows:
                         headers = cells
                         continue

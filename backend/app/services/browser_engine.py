@@ -200,7 +200,6 @@ class BrowserEngine:
             elif direction.strip().lower() in ("up", "top"):
                 await page.evaluate("window.scrollBy(0, -500)")
             else:
-                # Try to scroll element into view
                 await page.locator(direction).first.scroll_into_view_if_needed(timeout=4000)
             return {"status": "success", "scrolled": direction}
         except Exception as e:
