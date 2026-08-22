@@ -1,6 +1,6 @@
 import React from 'react';
 import { Play, RotateCcw, Sparkles, Globe, Sliders, Eye, Zap, Compass } from 'lucide-react';
-import { PRESET_PROMPTS } from '../services/agentMockEngine';
+import { LIVE_PRESETS } from '../services/liveAgentEngine';
 
 export default function PromptControl({ 
   prompt, 
@@ -17,6 +17,20 @@ export default function PromptControl({
   onRun,
   onReset
 }) {
+  const handlePromptChange = (newPrompt) => {
+    setPrompt(newPrompt);
+    const query = newPrompt
+      .replace(/^(search for|search|find|lookup|fetch|get|extract|open|who is|what is)\s+/i, '')
+      .replace(/['"]/g, '')
+      .split(/[,.]/)
+      .shift()
+      .trim();
+
+    if (query) {
+      setTargetUrl(`https://en.wikipedia.org/wiki/${encodeURIComponent(query.replace(/\s+/g, '_'))}`);
+    }
+  };
+
   const loadPreset = (preset) => {
     setPrompt(preset.prompt);
     setTargetUrl(preset.url);
@@ -29,9 +43,9 @@ export default function PromptControl({
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>
           <Sparkles size={13} color="var(--accent-cyan)" />
-          <span>Quick Prompts:</span>
+          <span>Live Presets:</span>
         </div>
-        {PRESET_PROMPTS.map((preset, idx) => (
+        {LIVE_PRESETS.map((preset, idx) => (
           <button
             key={idx}
             onClick={() => loadPreset(preset)}
@@ -69,8 +83,8 @@ export default function PromptControl({
         <div style={{ position: 'relative', width: '100%' }}>
           <textarea
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe what you want the AI Browser Agent to do (e.g. Search products, fill out forms, extract data...)"
+            onChange={(e) => handlePromptChange(e.target.value)}
+            placeholder="Type any search or command (e.g. 'search Pokemon Pikachu', 'find Virat Kohli', 'crypto Bitcoin rates', 'Albert Einstein biography'...)"
             rows={2}
             style={{
               width: '100%',
@@ -91,7 +105,7 @@ export default function PromptControl({
               type="text"
               value={targetUrl}
               onChange={(e) => setTargetUrl(e.target.value)}
-              placeholder="Target URL (e.g. https://www.amazon.com)"
+              placeholder="Target URL (Auto-resolved from query)"
               style={{ background: 'transparent', border: 'none', padding: 0, width: '100%', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}
             />
           </div>
@@ -131,7 +145,7 @@ export default function PromptControl({
             style={{ padding: '0.75rem 1.4rem', fontSize: '0.9rem' }}
           >
             <Play size={16} fill="currentColor" />
-            <span>{isRunning ? 'Executing...' : 'Run Agent'}</span>
+            <span>{isRunning ? 'Executing Live...' : 'Run Agent'}</span>
           </button>
 
           <button 

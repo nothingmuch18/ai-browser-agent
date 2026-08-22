@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, FileJson, Download, Network, Layers, HardDrive } from 'lucide-react';
+import { Database, Download, Network, Layers } from 'lucide-react';
 import { MOCK_NETWORK_LOGS } from '../services/agentMockEngine';
 
 export default function DataVaultInspector({ extractedData, parsedDOM }) {
@@ -14,6 +14,15 @@ export default function DataVaultInspector({ extractedData, parsedDOM }) {
     downloadAnchor.click();
     downloadAnchor.remove();
   };
+
+  // Get dynamic column headers from the extracted data object keys
+  const getColumns = () => {
+    if (!extractedData || extractedData.length === 0) return [];
+    const keys = Object.keys(extractedData[0]).filter(k => k !== 'id');
+    return ['#', ...keys];
+  };
+
+  const columns = getColumns();
 
   return (
     <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '240px', overflow: 'hidden' }}>
@@ -44,7 +53,7 @@ export default function DataVaultInspector({ extractedData, parsedDOM }) {
             }}
           >
             <Database size={13} />
-            <span>Extracted Data ({extractedData.length})</span>
+            <span>Extracted Data ({extractedData?.length || 0})</span>
           </button>
 
           <button
@@ -64,7 +73,7 @@ export default function DataVaultInspector({ extractedData, parsedDOM }) {
             }}
           >
             <Layers size={13} />
-            <span>Parsed DOM Tree</span>
+            <span>Parsed DOM Tree ({parsedDOM?.length || 0})</span>
           </button>
 
           <button
@@ -89,7 +98,7 @@ export default function DataVaultInspector({ extractedData, parsedDOM }) {
         </div>
 
         {/* Action Export Button */}
-        {extractedData.length > 0 && (
+        {extractedData?.length > 0 && (
           <button className="btn-secondary" onClick={downloadJSON} style={{ padding: '0.25rem 0.6rem', fontSize: '0.74rem' }}>
             <Download size={13} />
             <span>Export JSON</span>
@@ -99,9 +108,9 @@ export default function DataVaultInspector({ extractedData, parsedDOM }) {
 
       {/* Tab Content Body */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0.6rem 0.8rem' }}>
-        {/* Tab 1: Extracted Structured Data Table */}
+        {/* Tab 1: Extracted Dynamic Structured Data Table */}
         {activeTab === 'data' && (
-          extractedData.length === 0 ? (
+          (!extractedData || extractedData.length === 0) ? (
             <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '1.5rem' }}>
               No extracted data payload available yet. Execute an extraction step to view structured output.
             </div>
@@ -110,27 +119,36 @@ export default function DataVaultInspector({ extractedData, parsedDOM }) {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', textAlign: 'left' }}>
-                    <th style={{ padding: '0.4rem 0.6rem' }}>#</th>
-                    <th style={{ padding: '0.4rem 0.6rem' }}>Title</th>
-                    <th style={{ padding: '0.4rem 0.6rem' }}>Price</th>
-                    <th style={{ padding: '0.4rem 0.6rem' }}>Rating</th>
-                    <th style={{ padding: '0.4rem 0.6rem' }}>Badge</th>
-                    <th style={{ padding: '0.4rem 0.6rem' }}>Stock Status</th>
+                    {columns.map((col, idx) => (
+                      <th key={idx} style={{ padding: '0.4rem 0.6rem', textTransform: 'capitalize' }}>
+                        {col.replace(/_/g, ' ')}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {extractedData.map((item, idx) => (
+                  {extractedData.map((row, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                      <td style={{ padding: '0.4rem 0.6rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{item.id}</td>
-                      <td style={{ padding: '0.4rem 0.6rem', fontWeight: 600, color: '#fff' }}>{item.title}</td>
-                      <td style={{ padding: '0.4rem 0.6rem', fontFamily: 'var(--font-mono)', color: 'var(--accent-emerald)' }}>{item.price}</td>
-                      <td style={{ padding: '0.4rem 0.6rem', color: 'var(--accent-amber)' }}>{item.rating}</td>
-                      <td style={{ padding: '0.4rem 0.6rem' }}>
-                        <span style={{ background: 'rgba(0, 242, 254, 0.15)', color: 'var(--accent-cyan)', padding: '0.15rem 0.4rem', borderRadius: '4px', fontSize: '0.7rem' }}>
-                          {item.badge}
-                        </span>
+                      <td style={{ padding: '0.4rem 0.6rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                        {row.id || idx + 1}
                       </td>
-                      <td style={{ padding: '0.4rem 0.6rem', color: 'var(--text-secondary)' }}>{item.stock}</td>
+                      {Object.keys(row).filter(k => k !== 'id').map((key, kIdx) => {
+                        const val = row[key];
+                        const isHighlight = key === 'price' || key === 'stars' || key === 'value';
+                        return (
+                          <td 
+                            key={kIdx} 
+                            style={{ 
+                              padding: '0.4rem 0.6rem', 
+                              color: isHighlight ? 'var(--accent-emerald)' : '#fff',
+                              fontWeight: isHighlight ? 700 : 500,
+                              fontFamily: isHighlight ? 'var(--font-mono)' : 'inherit'
+                            }}
+                          >
+                            {val}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
@@ -142,13 +160,19 @@ export default function DataVaultInspector({ extractedData, parsedDOM }) {
         {/* Tab 2: Parsed DOM Tree */}
         {activeTab === 'dom' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            {parsedDOM.map((node, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', background: 'rgba(0, 0, 0, 0.3)', padding: '0.35rem 0.6rem', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '0.74rem' }}>
-                <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>&lt;{node.tag}&gt;</span>
-                <span style={{ color: 'var(--text-secondary)', marginLeft: '0.4rem' }}>selector: {node.selector}</span>
-                <span style={{ color: '#fff', marginLeft: 'auto', fontStyle: 'italic' }}>"{node.text}"</span>
-              </div>
-            ))}
+            {(!parsedDOM || parsedDOM.length === 0) ? (
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '1rem' }}>No DOM elements parsed yet.</div>
+            ) : (
+              parsedDOM.map((node, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', background: 'rgba(0, 0, 0, 0.3)', padding: '0.35rem 0.6rem', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '0.74rem' }}>
+                  <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>&lt;{node.tag || 'div'}&gt;</span>
+                  <span style={{ color: 'var(--text-secondary)', marginLeft: '0.4rem' }}>selector: {node.selector}</span>
+                  <span style={{ color: '#fff', marginLeft: 'auto', fontStyle: 'italic', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    "{node.text}"
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         )}
 

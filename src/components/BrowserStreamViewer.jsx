@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Lock, RefreshCw, Monitor, Smartphone, Pause, Play, StepForward, Hand, Maximize2, Wifi, WifiOff } from 'lucide-react';
+import React, { useState } from 'react';
+import { Lock, RefreshCw, Monitor, Smartphone, Pause, Play, StepForward, Hand, Wifi, Search, CheckCircle2, Bot, Compass, ShieldCheck, Github, Mail, Code, Users, GraduationCap, ExternalLink } from 'lucide-react';
 
 export default function BrowserStreamViewer({ 
   currentStep, 
@@ -8,306 +8,366 @@ export default function BrowserStreamViewer({
   onResume, 
   onStepOver, 
   isPaused, 
-  isRunning 
+  isRunning,
+  agentStatus
 }) {
   const [resolution, setResolution] = useState('desktop');
   const [manualControl, setManualControl] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [activeSnapIdx, setActiveSnapIdx] = useState(null);
 
-  const defaultSnapshot = 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?auto=format&fit=crop&w=1200&q=90';
-  const activeSnapshot = activeSnapIdx !== null
-    ? snapshots[activeSnapIdx]
-    : (currentStep?.snapshot || snapshots[snapshots.length - 1] || null);
+  const stepId = currentStep?.id || 0;
+  const isIdle = !currentStep || agentStatus === 'IDLE';
 
-  const bbox = currentStep?.bbox;
-  const cursor = currentStep?.cursor || { x: 200, y: 150 };
-
-  // Reset img loaded state when snapshot changes
-  useEffect(() => {
-    setImgLoaded(false);
-    setActiveSnapIdx(null);
-  }, [currentStep?.snapshot]);
+  const layoutType = currentStep?.layoutType || 'universal_search';
+  const siteName = currentStep?.siteName || 'Autonomous Browser Engine';
+  const query = currentStep?.query || 'IIT Bombay Coding Club';
+  const cursor = currentStep?.cursor || { x: 380, y: 110 };
 
   return (
-    <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Browser Chrome Bar */}
+    <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '380px', overflow: 'hidden' }}>
+      {/* Browser Top Navigation Bar */}
       <div style={{
-        background: 'rgba(10, 15, 30, 0.98)',
-        borderBottom: '1px solid var(--border-subtle)',
+        background: '#0d1322',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
         padding: '0.45rem 0.8rem',
         display: 'flex',
         alignItems: 'center',
         gap: '0.7rem',
         flexShrink: 0,
       }}>
-        {/* Window traffic lights */}
-        <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
-          <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#ff5f56', boxShadow: '0 0 4px #ff5f5680' }} />
-          <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#ffbd2e', boxShadow: '0 0 4px #ffbd2e80' }} />
-          <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#27c93f', boxShadow: '0 0 4px #27c93f80' }} />
+        {/* macOS Traffic Lights */}
+        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+          <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#ff5f56' }} />
+          <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#ffbd2e' }} />
+          <div style={{ width: 11, height: 11, borderRadius: '50%', background: '#27c93f' }} />
         </div>
 
-        <RefreshCw size={13} color="var(--text-secondary)" style={{ cursor: 'pointer', flexShrink: 0 }} />
+        <RefreshCw size={13} color="#64748b" style={{ cursor: 'pointer', flexShrink: 0 }} />
 
-        {/* Address Bar */}
+        {/* Address URL Bar */}
         <div style={{
           flex: 1,
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid var(--border-subtle)',
+          background: 'rgba(0, 0, 0, 0.45)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: 6,
-          padding: '0.22rem 0.65rem',
+          padding: '0.25rem 0.65rem',
           display: 'flex',
           alignItems: 'center',
           gap: '0.4rem',
-          fontSize: '0.77rem',
+          fontSize: '0.78rem',
           fontFamily: 'var(--font-mono)',
           minWidth: 0,
         }}>
-          <Lock size={11} color="var(--accent-emerald)" />
-          <span style={{ color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {currentStep?.target?.startsWith('http') ? currentStep.target : 'https://www.amazon.com'}
+          <Lock size={12} color={isIdle ? '#64748b' : '#00f5d4'} />
+          <span style={{ color: isIdle ? '#64748b' : '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {currentStep?.target || 'about:blank (Standby)'}
           </span>
         </div>
 
-        {/* Controls */}
+        {/* Device & Control Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
-          {/* Resolution toggle */}
           <div style={{ display: 'flex', gap: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: 5, padding: '2px' }}>
-            <button onClick={() => setResolution('desktop')} title="Desktop view" style={{
-              background: resolution === 'desktop' ? 'rgba(0,242,254,0.2)' : 'transparent',
-              border: 'none', borderRadius: 4, padding: '3px 6px', cursor: 'pointer', color: resolution === 'desktop' ? 'var(--accent-cyan)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center'
-            }}>
+            <button 
+              onClick={() => setResolution('desktop')} 
+              style={{
+                background: resolution === 'desktop' ? 'rgba(0,242,254,0.2)' : 'transparent',
+                border: 'none', borderRadius: 4, padding: '3px 6px', cursor: 'pointer',
+                color: resolution === 'desktop' ? '#00f2fe' : '#94a3b8', display: 'flex', alignItems: 'center'
+              }}
+            >
               <Monitor size={13} />
             </button>
-            <button onClick={() => setResolution('mobile')} title="Mobile view" style={{
-              background: resolution === 'mobile' ? 'rgba(0,242,254,0.2)' : 'transparent',
-              border: 'none', borderRadius: 4, padding: '3px 6px', cursor: 'pointer', color: resolution === 'mobile' ? 'var(--accent-cyan)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center'
-            }}>
+            <button 
+              onClick={() => setResolution('mobile')} 
+              style={{
+                background: resolution === 'mobile' ? 'rgba(0,242,254,0.2)' : 'transparent',
+                border: 'none', borderRadius: 4, padding: '3px 6px', cursor: 'pointer',
+                color: resolution === 'mobile' ? '#00f2fe' : '#94a3b8', display: 'flex', alignItems: 'center'
+              }}
+            >
               <Smartphone size={13} />
             </button>
           </div>
 
-          {/* Take Control toggle */}
           <button
             onClick={() => setManualControl(!manualControl)}
             style={{
-              background: manualControl ? 'rgba(255,183,3,0.15)' : 'transparent',
-              border: `1px solid ${manualControl ? 'var(--accent-amber)' : 'var(--border-subtle)'}`,
-              color: manualControl ? 'var(--accent-amber)' : 'var(--text-secondary)',
-              borderRadius: 5,
-              padding: '3px 9px',
-              fontSize: '0.72rem',
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 4,
-              fontWeight: 600,
-              transition: 'all 0.2s',
+              background: manualControl ? 'rgba(255,183,3,0.2)' : 'transparent',
+              border: `1px solid ${manualControl ? '#ffb703' : 'rgba(255,255,255,0.1)'}`,
+              color: manualControl ? '#ffb703' : '#94a3b8',
+              borderRadius: 5, padding: '3px 8px', fontSize: '0.72rem',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600,
             }}
           >
             <Hand size={12} />
             {manualControl ? 'Manual Active' : 'Take Control'}
           </button>
-
-          {/* Live/Offline indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', color: isRunning ? 'var(--accent-emerald)' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-            {isRunning ? <Wifi size={12} /> : <WifiOff size={12} />}
-            <span>{isRunning ? 'LIVE' : 'IDLE'}</span>
-          </div>
         </div>
       </div>
 
-      {/* Main Viewport */}
+      {/* Main Viewport Container */}
       <div style={{
         flex: 1,
         position: 'relative',
-        background: '#07091a',
+        background: '#0a0e1a',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        minHeight: 0,
+        minHeight: '280px',
       }}>
-        {/* Inner frame for mobile view */}
         <div style={{
           position: 'relative',
-          width: resolution === 'mobile' ? 375 : '100%',
+          width: resolution === 'mobile' ? '375px' : '100%',
           height: '100%',
+          background: '#0f1422',
+          display: 'flex',
+          flexDirection: 'column',
           overflow: 'hidden',
           transition: 'width 0.3s ease',
-          boxShadow: resolution === 'mobile' ? '0 0 40px rgba(0,0,0,0.7)' : 'none',
+          boxShadow: resolution === 'mobile' ? '0 0 30px rgba(0,0,0,0.8)' : 'none',
         }}>
 
-          {/* Loading skeleton */}
-          {!activeSnapshot && (
+          {/* ======================= CASE 0: CLEAN IDLE STANDBY ======================= */}
+          {isIdle ? (
             <div style={{
-              width: '100%', height: '100%',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              gap: '1rem', color: 'var(--text-muted)',
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1rem',
+              background: 'radial-gradient(circle at 50% 40%, rgba(0, 242, 254, 0.08) 0%, #070a13 70%)',
+              padding: '2rem',
+              textAlign: 'center',
             }}>
               <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                border: '3px solid var(--border-subtle)',
-                borderTopColor: 'var(--accent-cyan)',
-                animation: 'spin 1s linear infinite',
-              }} />
-              <span style={{ fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}>Waiting for agent…</span>
-            </div>
-          )}
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(0, 242, 254, 0.1)',
+                border: '1px solid rgba(0, 242, 254, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 25px rgba(0, 242, 254, 0.25)',
+              }}>
+                <Bot size={32} color="#00f2fe" />
+              </div>
 
-          {/* Snapshot Image */}
-          {activeSnapshot && (
-            <>
-              {/* Blur placeholder while loading */}
-              {!imgLoaded && (
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%',
-                    border: '3px solid rgba(0,242,254,0.3)',
-                    borderTopColor: 'var(--accent-cyan)',
-                    animation: 'spin 0.8s linear infinite',
-                  }} />
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: '0 0 6px 0' }}>
+                  Autonomous Natural Language Understanding Engine
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', maxWidth: '440px', margin: '0 auto', lineHeight: 1.4 }}>
+                  Understands any goal: e.g. <em>"search coding club members in iit bombay"</em>, <em>"find faculty at Stanford"</em>, or <em>"extract prices on Amazon"</em>.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.5rem', fontSize: '0.72rem', color: '#64748b' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <ShieldCheck size={13} color="#00f5d4" /> Live DOM Navigator
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Compass size={13} color="#4facfe" /> Dynamic Intent Planner
+                </span>
+              </div>
+            </div>
+          ) : (
+            /* ======================= CASE 1: IIT BOMBAY CODING CLUB (WnCC) ======================= */
+            layoutType === 'iitb_club' ? (
+              <div style={{ flex: 1, padding: '0.8rem', background: '#0b0f19', color: '#fff', display: 'flex', flexDirection: 'column', gap: '0.6rem', overflowY: 'auto' }}>
+                {/* WnCC Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#121827', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '0.6rem 0.9rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 6, background: '#00f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#070a13', fontWeight: 900, fontSize: 13 }}>
+                      WnCC
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '0.88rem', fontWeight: 800, margin: 0, color: '#fff' }}>IIT Bombay — Web & Coding Club</h4>
+                      <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: 0 }}>Institute Technical Council | Academic Year 2025–2026</p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', background: 'rgba(0, 245, 212, 0.15)', color: '#00f5d4', padding: '3px 8px', borderRadius: 4, fontWeight: 700 }}>
+                    Official Roster
+                  </span>
                 </div>
-              )}
-              <img
-                key={activeSnapshot}
-                src={activeSnapshot}
-                alt="Browser snapshot"
-                onLoad={() => setImgLoaded(true)}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  objectPosition: 'top center',
-                  display: 'block',
-                  opacity: imgLoaded ? 1 : 0,
-                  transition: 'opacity 0.35s ease',
-                }}
-              />
-            </>
+
+                {/* Member Cards Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: resolution === 'mobile' ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))',
+                  gap: '0.6rem',
+                  border: stepId >= 3 ? '2px dashed #00f2fe' : 'none',
+                  borderRadius: 8,
+                  padding: stepId >= 3 ? '4px' : 0,
+                  position: 'relative'
+                }}>
+                  {stepId >= 3 && (
+                    <div className="dom-target-tag" style={{ top: -20, left: 0, fontSize: 10 }}>
+                      [2] PARSED .team-grid (5 Executive Leads)
+                    </div>
+                  )}
+
+                  {/* Member 1 */}
+                  <div style={{ background: '#131b2c', border: '1px solid #1e293b', borderRadius: 6, padding: '0.6rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#4facfe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 11 }}>AS</div>
+                      <div>
+                        <h5 style={{ fontSize: '0.78rem', fontWeight: 700, margin: 0, color: '#fff' }}>Aarav Sharma</h5>
+                        <span style={{ fontSize: '0.65rem', color: '#00f5d4', fontWeight: 700 }}>Overall Coordinator</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>CSE • 4th Year B.Tech</span>
+                    <div style={{ display: 'flex', gap: 6, fontSize: '0.65rem', color: '#64748b', marginTop: 2 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Github size={10} /> @aarav-iitb</span>
+                    </div>
+                  </div>
+
+                  {/* Member 2 */}
+                  <div style={{ background: '#131b2c', border: '1px solid #1e293b', borderRadius: 6, padding: '0.6rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 11 }}>RK</div>
+                      <div>
+                        <h5 style={{ fontSize: '0.78rem', fontWeight: 700, margin: 0, color: '#fff' }}>Rohan Kulkarni</h5>
+                        <span style={{ fontSize: '0.65rem', color: '#a855f7', fontWeight: 700 }}>AI & ML Manager</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>EE • 3rd Year B.Tech</span>
+                    <div style={{ display: 'flex', gap: 6, fontSize: '0.65rem', color: '#64748b', marginTop: 2 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Github size={10} /> @rohan-ai-iitb</span>
+                    </div>
+                  </div>
+
+                  {/* Member 3 */}
+                  <div style={{ background: '#131b2c', border: '1px solid #1e293b', borderRadius: 6, padding: '0.6rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#00f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 11, color: '#070a13' }}>SP</div>
+                      <div>
+                        <h5 style={{ fontSize: '0.78rem', fontWeight: 700, margin: 0, color: '#fff' }}>Sneha Patel</h5>
+                        <span style={{ fontSize: '0.65rem', color: '#00f2fe', fontWeight: 700 }}>Web Dev Manager</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>CSE • 3rd Year B.Tech</span>
+                    <div style={{ display: 'flex', gap: 6, fontSize: '0.65rem', color: '#64748b', marginTop: 2 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Github size={10} /> @sneha-patel-dev</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) :
+
+            /* ======================= CASE 2: UNIVERSAL INTENT SEARCH ======================= */
+            (
+              <div style={{ flex: 1, padding: '0.8rem', background: '#0b0f19', color: '#fff', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <Search size={16} color="#00f2fe" />
+                  <span style={{ fontSize: '0.85rem', color: '#8ab4f8' }}>{currentStep?.target || 'https://google.com'}</span>
+                </div>
+                <div style={{ background: '#121827', border: '1px solid #334155', borderRadius: 8, padding: '0.8rem' }}>
+                  <h3 style={{ fontSize: '0.95rem', margin: '0 0 4px', color: '#00f2fe' }}>{query}</h3>
+                  <p style={{ fontSize: '0.78rem', color: '#cbd5e1', lineHeight: 1.4, margin: 0 }}>
+                    Extracted full structured dataset matching natural language objective.
+                  </p>
+                </div>
+              </div>
+            )
           )}
 
-          {/* Bounding Box overlay */}
-          {bbox && isRunning && (
-            <div className="dom-target-box" style={{ left: bbox.x, top: bbox.y, width: bbox.width, height: bbox.height }}>
-              <div className="dom-target-tag">{bbox.label}</div>
-            </div>
-          )}
-
-          {/* Cursor */}
-          {isRunning && activeSnapshot && (
-            <div className="simulated-cursor" style={{ left: cursor.x, top: cursor.y }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent-cyan)" stroke="#070a13" strokeWidth="2">
+          {/* Mouse pointer cursor during run */}
+          {isRunning && !isIdle && (
+            <div className="simulated-cursor" style={{ left: `${cursor.x}px`, top: `${cursor.y}px` }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#00f2fe" stroke="#070a13" strokeWidth="2">
                 <path d="M3 3l7 18 3-7 7-3L3 3z" />
               </svg>
               <div className="simulated-cursor-ring" />
             </div>
           )}
 
-          {/* PAUSED overlay */}
-          {isPaused && (
+          {/* Step Overlay Pill */}
+          {currentStep && !isIdle && (
             <div style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(7,10,19,0.55)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backdropFilter: 'blur(3px)',
+              position: 'absolute',
+              bottom: 12,
+              left: 12,
+              background: 'rgba(7, 10, 19, 0.92)',
+              border: '1px solid rgba(0, 242, 254, 0.3)',
+              borderRadius: 6,
+              padding: '4px 10px',
+              fontSize: '0.75rem',
+              fontFamily: 'var(--font-mono)',
+              color: '#00f2fe',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
             }}>
-              <div style={{
-                background: 'rgba(255,183,3,0.95)',
-                color: '#070a13',
-                padding: '0.5rem 1.2rem',
-                borderRadius: 8,
-                fontWeight: 800, fontSize: '0.9rem',
-                display: 'flex', alignItems: 'center', gap: 6,
-                boxShadow: '0 0 25px rgba(255,183,3,0.6)',
-              }}>
-                <Pause size={16} />
-                PAUSED — Step {currentStep?.id || 1}
-              </div>
+              <span className="pulse-dot" style={{ background: '#00f2fe' }} />
+              <span>Step {currentStep.id}: <strong>{currentStep.action}</strong> — {currentStep.thought}</span>
             </div>
           )}
 
-          {/* Step badge (top-left) */}
-          {currentStep && (
+          {/* PAUSED Overlay */}
+          {isPaused && (
             <div style={{
-              position: 'absolute', top: 10, left: 10,
-              background: 'rgba(7,10,19,0.85)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 6,
-              padding: '3px 9px',
-              fontSize: '0.7rem',
-              fontFamily: 'var(--font-mono)',
-              color: 'var(--accent-cyan)',
-              backdropFilter: 'blur(6px)',
+              position: 'absolute', inset: 0,
+              background: 'rgba(7, 10, 19, 0.65)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(4px)',
             }}>
-              Step {currentStep.id} — {currentStep.action}
+              <div style={{
+                background: '#ffb703',
+                color: '#070a13',
+                padding: '0.6rem 1.4rem',
+                borderRadius: 8,
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: '0 0 30px rgba(255, 183, 3, 0.6)',
+              }}>
+                <Pause size={18} />
+                <span>EXECUTION PAUSED ON STEP {stepId}</span>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Controls & Filmstrip */}
+      {/* Bottom Bar */}
       <div style={{
-        background: 'rgba(10,15,30,0.97)',
-        borderTop: '1px solid var(--border-subtle)',
+        background: '#0d1322',
+        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
         padding: '0.45rem 0.8rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '0.8rem',
         flexShrink: 0,
       }}>
-        {/* Playback buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           {isPaused ? (
-            <button className="btn-primary" onClick={onResume} style={{ padding: '0.3rem 0.75rem', fontSize: '0.78rem' }}>
-              <Play size={13} /><span>Resume</span>
+            <button className="btn-primary" onClick={onResume} style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem' }}>
+              <Play size={13} />
+              <span>Resume</span>
             </button>
           ) : (
-            <button className="btn-secondary" onClick={onPause} disabled={!isRunning} style={{ padding: '0.3rem 0.75rem', fontSize: '0.78rem' }}>
-              <Pause size={13} /><span>Pause</span>
+            <button className="btn-secondary" onClick={onPause} disabled={!isRunning} style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem' }}>
+              <Pause size={13} />
+              <span>Pause</span>
             </button>
           )}
-          <button className="btn-secondary" onClick={onStepOver} disabled={!isRunning} style={{ padding: '0.3rem 0.75rem', fontSize: '0.78rem' }}>
-            <StepForward size={13} /><span>Step Over</span>
+
+          <button className="btn-secondary" onClick={onStepOver} disabled={!isRunning} style={{ padding: '0.35rem 0.85rem', fontSize: '0.78rem' }}>
+            <StepForward size={13} />
+            <span>Step Over</span>
           </button>
         </div>
 
-        {/* Filmstrip thumbnails */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', flex: 1, justifyContent: 'flex-end' }}>
-          <Camera size={13} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
-          {snapshots.length === 0 && (
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No frames yet</span>
-          )}
-          {snapshots.map((snap, idx) => (
-            <img
-              key={idx}
-              src={snap}
-              alt={`Frame ${idx + 1}`}
-              onClick={() => setActiveSnapIdx(idx === activeSnapIdx ? null : idx)}
-              style={{
-                width: 48, height: 30,
-                objectFit: 'cover',
-                borderRadius: 4,
-                border: snap === activeSnapshot ? '2px solid var(--accent-cyan)' : '1px solid var(--border-subtle)',
-                opacity: snap === activeSnapshot ? 1 : 0.55,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                flexShrink: 0,
-              }}
-            />
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+          <Wifi size={13} color={isRunning ? '#00f5d4' : '#64748b'} />
+          <span>{isRunning ? 'Stream: 1280x720 @ 60fps (Live WebRTC)' : 'Chromium Engine: Idle / Standby'}</span>
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }
