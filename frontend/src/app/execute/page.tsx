@@ -42,10 +42,21 @@ function ExecuteContent() {
         setTask(res.data);
         if (res.data.steps?.length) {
           setSteps(res.data.steps);
-          // Set last step's screenshot url if we don't have base64
-          const lastWithScreenshot = [...res.data.steps].reverse().find(s => s.screenshot_url);
+          
+          // Find latest navigation URL
+          const navStep = [...res.data.steps].reverse().find(
+            (s) => s.action === "navigate" || s.target?.startsWith("http")
+          );
+          if (navStep?.target) {
+            setCurrentUrl(navStep.target);
+          } else if (res.data.target_url) {
+            setCurrentUrl(res.data.target_url);
+          }
+
+          // Set latest step's screenshot url if no base64 received
+          const lastWithScreenshot = [...res.data.steps].reverse().find((s) => s.screenshot_url);
           if (lastWithScreenshot?.screenshot_url && !screenshot) {
-            setCurrentUrl(lastWithScreenshot.target || "about:blank");
+            setScreenshot(null); // let BrowserView load screenshot_url
           }
         }
         if (res.data.total_tokens) setTokens(res.data.total_tokens);
@@ -59,7 +70,7 @@ function ExecuteContent() {
 
     fetchCurrentTask();
     if (!taskDone) {
-      const interval = setInterval(fetchCurrentTask, 1500);
+      const interval = setInterval(fetchCurrentTask, 1200);
       return () => clearInterval(interval);
     }
   }, [taskId, taskDone, screenshot]);
@@ -246,8 +257,11 @@ function ExecuteContent() {
         <BrowserView
           url={currentUrl}
           screenshotBase64={screenshot}
+          screenshotUrl={
+            [...steps].reverse().find((s) => s.screenshot_url)?.screenshot_url || null
+          }
           isLoading={!taskDone && steps.length === 0}
-          className="lg:col-span-3"
+          className="lg:col-span-3 min-h-[480px]"
         />
 
         {/* Right — Timeline (40%) */}
